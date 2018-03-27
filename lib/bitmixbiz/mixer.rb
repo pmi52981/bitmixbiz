@@ -30,7 +30,7 @@ module Bitmixbiz
       end
     end
 
-    attr_reader :options
+    attr_reader :options, :active_host
     attr_accessor :logger
 
     include Helpers
@@ -55,7 +55,7 @@ module Bitmixbiz
 
     def initialize(key = nil, options = {})
       @logger = Logger.new STDOUT
-      @key = nil
+      @key = key
       def_opts = {
         tor: false,
         testnet: false,
@@ -67,10 +67,21 @@ module Bitmixbiz
       }
       optionize(def_opts, options)
       yield self if block_given?
+      @active_host =
+          if @options.testnet
+            @options.api_testnet_host
+          elsif @options.tor
+            @options.tor_host
+          else
+            @options.api_host
+          end
     end
 
     def build_order(order_id)
-      order = Order.new { |o| o.id = order_id }
+      order = Order.new do |o|
+        o.id = order_id
+        o.instance_variable_set('@host', active_host)
+      end
       view_order order
       order.instance_variable_set('@input_address', order.data[:order][:input_address])
       order
@@ -90,6 +101,7 @@ module Bitmixbiz
       json = request '/order/create', :post, order.options.to_h
       order.id = json['id']
       order.instance_variable_set("@input_address", json['input_address'])
+      order.instance_variable_set("@host", active_host)
       view_order order
       yield json if block_given?
       true
@@ -134,16 +146,7 @@ module Bitmixbiz
     # @param [Symbol] method
     # @param [Hash] params
     def request(path, method = :get, params = {})
-      host =
-        if options.testnet
-          options.api_testnet_host
-        elsif options.tor
-          options.tor_host
-        else
-          options.api_host
-        end
-
-      uri = URI("http://#{host}/api")
+      uri = URI("http://#{@active_host}/api")
       uri.path += path
       req = prepare_request(method, uri)
 
@@ -153,7 +156,7 @@ module Bitmixbiz
       req['Accept'] = 'application/json'
       req.body= convert_hash_to_string_params(params.merge(key: @key)) if method == :post
 
-      http_klass = host.end_with?('onion') ? Net::HTTP.SOCKSProxy(options.socks_host, options.socks_port) : Net::HTTP
+      http_klass = active_host.end_with?('onion') ? Net::HTTP.SOCKSProxy(options.socks_host, options.socks_port) : Net::HTTP
 
       http = http_klass.new uri.hostname, uri.port
 

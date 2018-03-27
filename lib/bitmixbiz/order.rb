@@ -21,13 +21,14 @@ module Bitmixbiz
     def initialize(options = {})
       @id = nil
       @input_address = nil
+      @host = Bitmixbiz::API_HOST
       @data = {}
       optionize({ tax: 0.4, delay: 24, address: [], randomize: 0 }, options)
       yield self if block_given?
     end
 
-    def self.from_id(key, id)
-      new(key) { |a| a.id = id }
+    def link
+      "http://#{@host}/api/order/view/#{id}"
     end
 
     def to_h
