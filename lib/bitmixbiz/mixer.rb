@@ -158,7 +158,6 @@ module Bitmixbiz
       req['Accept'] = 'application/json'
       req.body= convert_hash_to_string_params(params.merge(key: @key)) if method == :post
 
-      p @active_host
       http_klass = active_host.end_with?('onion') ? Net::HTTP.SOCKSProxy(options.socks_host, options.socks_port) : Net::HTTP
 
       http = http_klass.new uri.hostname, uri.port
