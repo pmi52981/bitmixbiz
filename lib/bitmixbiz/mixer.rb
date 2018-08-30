@@ -71,7 +71,7 @@ module Bitmixbiz
           if @options.testnet
             @options.api_testnet_host
           elsif @options.tor
-            @options.tor_host
+            @options.api_tor_host
           else
             @options.api_host
           end
@@ -109,6 +109,8 @@ module Bitmixbiz
       log ex.to_s, :fatal
       raise ex
     end
+
+    alias create_order! create_order
 
     def view_order(order)
       json = request "/order/view/#{order.id}"
@@ -156,6 +158,7 @@ module Bitmixbiz
       req['Accept'] = 'application/json'
       req.body= convert_hash_to_string_params(params.merge(key: @key)) if method == :post
 
+      p @active_host
       http_klass = active_host.end_with?('onion') ? Net::HTTP.SOCKSProxy(options.socks_host, options.socks_port) : Net::HTTP
 
       http = http_klass.new uri.hostname, uri.port

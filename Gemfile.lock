@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    bitmixbiz (0.1.0)
+    bitmixbiz (0.1.1)
       socksify
 
 GEM
